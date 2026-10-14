@@ -6,7 +6,8 @@
     "start": "wp-env start",
     "stop": "wp-env stop",
     "wp": "wp-env run cli wp",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:prod": "E2E_BASE_URL=https://xw832954.xwp.jp playwright test --grep @readonly"
   },
   "devDependencies": {
     "@playwright/test": "1.63",

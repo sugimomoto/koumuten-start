@@ -11,7 +11,14 @@
 - 既製プラグイン（ACF・Contact Form 7 など）には頼らず、コードで書く
 - WordPress の作法は `.claude/skills/`（WordPress 公式 Agent Skills）に従う
 - 日本語のサイト。スマホでも見やすくする
-- サイトの中身（固定ページ・メニュー・サンプル）は、**何度実行しても同じ状態になるスクリプト**で作る
+- サイトの中身（固定ページ・メニュー・サンプル）は、**何度実行しても同じ状態になるスクリプト**で作る。ローカルと本番の両方で動く形にする（本番は下の `bin/wp-remote.sh` 経由）
+
+## 公開（本番：XServer WordPress）
+- 本番：https://xw832954.xwp.jp （公開の仕組みは準備済み。設定は `bin/deploy-config.sh`）
+- テーマとプラグインを送る：`bash bin/deploy.sh`（`--dry-run` で送るファイルの確認だけ）
+- 本番で WP-CLI を使う：`bash bin/wp-remote.sh <コマンド>`（例：`bash bin/wp-remote.sh theme activate koumuten`）
+- 本番に公開する前に、ローカルの E2E が全部成功していること。公開したら `npm run test:e2e:prod`（読むだけのテスト）で確かめる
+- 本番で読むだけのテストには `@readonly` のタグを付ける。データを書き込むテストは本番では動かさない（`isLocal` でスキップ）
 
 ## ドキュメント駆動の進め方
 文書で決めてから作る。会話だけで決めたことも、必ず文書に残してから実装する。
