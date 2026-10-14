@@ -55,3 +55,25 @@ export function deletePostMeta( postId: string, key: string ) {
 		wpCli( 'post', 'meta', 'delete', postId, key );
 	}
 }
+
+/**
+ * ブロックエディターの下にある「メタボックス」の引き出しを開く。
+ * 施工事例のくわしい内容（場所・工期・築年数・費用）はこの中にある。
+ */
+export async function openMetaBoxes( page: Page ) {
+	const drawer = page.locator( '.edit-post-meta-boxes-main button[aria-expanded]' ).first();
+	if ( ( await drawer.getAttribute( 'aria-expanded' ) ) === 'false' ) {
+		// 帯の真ん中には WordPress の「ドラッグしてサイズ変更」のつまみが重なっているので、
+		// 利用者と同じように「メタボックス」の文字のところを押す。
+		await drawer.click( { position: { x: 60, y: 12 } } );
+	}
+	await page.locator( '#koumuten-work-fields' ).waitFor( { state: 'visible' } );
+}
+
+/** エディター右側の、たたまれているパネルを開く（例：「種類」） */
+export async function openSidebarPanel( page: Page, name: string ) {
+	const button = page.getByRole( 'button', { name, exact: true } );
+	if ( ( await button.getAttribute( 'aria-expanded' ) ) === 'false' ) {
+		await button.click();
+	}
+}

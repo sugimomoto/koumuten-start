@@ -2,3 +2,6 @@ node_modules/
 test-results/
 playwright-report/
 .DS_Store
+
+# 画面の確認用に撮ったスクリーンショット（必要なときに撮り直せる）
+screenshots/
