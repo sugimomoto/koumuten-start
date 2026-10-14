@@ -18,6 +18,8 @@
 - テーマとプラグインを送る：`bash bin/deploy.sh`（`--dry-run` で送るファイルの確認だけ）
 - 本番で WP-CLI を使う：`bash bin/wp-remote.sh <コマンド>`（例：`bash bin/wp-remote.sh theme activate koumuten`）
 - 本番に公開する前に、ローカルの E2E が全部成功していること。公開したら `npm run test:e2e:prod`（読むだけのテスト）で確かめる
+- **GitHub につないだあとの公開は、main に push して GitHub Actions に任せる**（`.github/workflows/deploy.yml`：構文チェック → `bin/deploy.sh` → `bin/setup-content.sh --remote`（あれば）→ 本番で読むだけのテスト）。結果は `gh run watch` で確かめる
+- 中身を作るスクリプトは `bin/setup-content.sh`（`--remote` で本番）という名前にする（Actions が呼ぶ）
 - 本番で読むだけのテストには `@readonly` のタグを付ける。データを書き込むテストは本番では動かさない（`isLocal` でスキップ）
 
 ## ドキュメント駆動の進め方

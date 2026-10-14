@@ -1,0 +1,87 @@
+# main に push したら、チェックしてから本番（XServer WordPress）へ自動で公開する。
+# - 構文チェック（php -l）→ bin/deploy.sh で本番へ送る → 中身を作るスクリプトがあれば本番でも実行 → 本番で「読むだけ」のテスト
+# - 事前に GitHub の Secrets に XSERVER_SSH_KEY（公開専用の秘密鍵）と XSERVER_KNOWN_HOSTS（サーバーの公開鍵）を登録しておく
+# - テーマがまだ無い（スタート地点の）ときは、公開しない
+name: deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: PHP の構文チェック
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: 構文チェック（php -l）
+        run: |
+          files=$(find wp-content -name '*.php')
+          [ -z "$files" ] && { echo "PHP のファイルがまだありません"; exit 0; }
+          echo "$files" | xargs -n1 php -l
+
+  deploy:
+    name: 本番へ公開
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: テーマがあるか確かめる（スタート地点なら公開しない）
+        id: guard
+        run: |
+          if [ -f wp-content/themes/koumuten/style.css ]; then echo "ready=true" >> "$GITHUB_OUTPUT"; else echo "ready=false" >> "$GITHUB_OUTPUT"; echo "::notice::テーマがまだ無いので公開しません"; fi
+
+      - name: SSH の鍵を用意する
+        if: steps.guard.outputs.ready == 'true'
+        env:
+          SSH_KEY: ${{ secrets.XSERVER_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.XSERVER_KNOWN_HOSTS }}
+        run: |
+          if [ -z "$SSH_KEY" ] || [ -z "$KNOWN_HOSTS" ]; then
+            echo "::error::Secrets（XSERVER_SSH_KEY / XSERVER_KNOWN_HOSTS）が登録されていません"; exit 1
+          fi
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key && chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts && chmod 644 ~/.ssh/known_hosts
+
+      - name: 本番へ送る（bin/deploy.sh。接続が切れたら3回までやり直す）
+        if: steps.guard.outputs.ready == 'true'
+        run: |
+          export DEPLOY_KEY="$HOME/.ssh/deploy_key"
+          for i in 1 2 3; do
+            bash bin/deploy.sh && exit 0
+            echo "::warning::公開に失敗（${i}回目）。30秒後にやり直します"; sleep 30
+          done
+          exit 1
+
+      - name: 本番の中身を作る（中身を作るスクリプトがあれば）
+        if: steps.guard.outputs.ready == 'true'
+        run: |
+          export DEPLOY_KEY="$HOME/.ssh/deploy_key"
+          if [ -f bin/setup-content.sh ]; then bash bin/setup-content.sh --remote; else echo "中身を作るスクリプトはありません"; fi
+
+      - uses: actions/setup-node@v7
+        if: steps.guard.outputs.ready == 'true'
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: 公開後の確認（本番で「読むだけ」のテスト）
+        if: steps.guard.outputs.ready == 'true'
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          E2E_BASE_URL=https://xw832954.xwp.jp npx playwright test --grep @readonly --pass-with-no-tests
+
+      - name: 鍵を消す
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
