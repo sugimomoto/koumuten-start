@@ -1,0 +1,15 @@
+{
+  "name": "koumuten-start",
+  "private": true,
+  "description": "工務店サイト案件のスタート地点（AIコーディング勉強会のデモ用）",
+  "scripts": {
+    "start": "wp-env start",
+    "stop": "wp-env stop",
+    "wp": "wp-env run cli wp",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63",
+    "@wordpress/env": "^11.17.0"
+  }
+}
